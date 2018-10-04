@@ -40,40 +40,10 @@ var (
 
 // A result returned by the api.
 type Result struct {
-	Success    bool
-	Registered bool
-	Id         string
-}
-
-func (r *Result) UnmarshalJSON(b []byte) error {
-
-	resultRaw := struct {
-		Success    bool   `json:"success"`
-		Registered bool   `json:"registered"`
-		Id         uint64 `json:"id"`
-	}{}
-
-	if err := json.Unmarshal(b, &resultRaw); err != nil {
-		return err
-	}
-
-	// Fucking aids because int/string
-	if resultRaw.Success && resultRaw.Id == 0 {
-		resultRaw2 := struct {
-			Id string `json:"id"`
-		}{}
-		if err := json.Unmarshal(b, &resultRaw2); err != nil {
-			return err
-		}
-
-		r.Id = resultRaw2.Id
-	} else {
-		r.Id = strconv.FormatUint(resultRaw.Id, 10)
-	}
-
-	r.Registered = resultRaw.Registered
-	r.Success = resultRaw.Success
-	return nil
+	Success    bool   `json:"success"`
+	Registered bool   `json:"registered"`
+	Id         string `json:"id"`
+	UUID       string `json:"uuid"`
 }
 
 // ApiClient supplies a client that has a timeout set to stop infinite requests.
@@ -164,10 +134,10 @@ func Get(input string) (output string, err error) {
 	var res Result
 	switch link {
 	case linkMinecraft:
-		res, err = doRequest(EndpointMCGetID(input))
+		res, err = DoRequest(EndpointMCGetID(input))
 		break
 	case linkDiscord:
-		res, err = doRequest(EndpointDiscordGetUUID(input))
+		res, err = DoRequest(EndpointDiscordGetUUID(input))
 	default:
 		return
 	}
@@ -176,6 +146,10 @@ func Get(input string) (output string, err error) {
 		err = errors.New("request was not success")
 	}
 
-	output = res.Id
+	if link == linkMinecraft {
+		output = res.Id
+	} else {
+		output = res.UUID
+	}
 	return
 }
